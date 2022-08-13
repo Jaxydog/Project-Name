@@ -88,7 +88,7 @@ fn main() {
     }
 }
 
-fn color(n: usize) -> &'static str {
+const fn color(n: usize) -> &'static str {
     match n {
         0 => "🟥",
         1 => "🟫",

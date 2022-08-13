@@ -21,7 +21,7 @@ TileData(
         ),
         (
             source: "",
-            weight: 3,
+            weight: 4,
             nodes: [
                 [1, 1, 1, 1, 1],
                 [1, 0, 0, 0, 1],
@@ -38,7 +38,7 @@ TileData(
         ),
         (
             source: "",
-            weight: 3,
+            weight: 4,
             nodes: [
                 [1, 1, 0, 1, 1],
                 [1, 0, 0, 0, 1],
@@ -55,7 +55,7 @@ TileData(
         ),
         (
             source: "",
-            weight: 3,
+            weight: 4,
             nodes: [
                 [1, 1, 0, 1, 1],
                 [1, 0, 0, 0, 1],

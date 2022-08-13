@@ -240,11 +240,11 @@ impl Tile {
     }
     /// Returns `true` if the provided tile is compatible on the given side
     pub fn connects(&self, tile: Self, side: Side) -> bool {
-        let this = self.transformed();
-        let tile = tile.transformed();
         let facing = side.opposite();
+        let this = self.transformed().socket(side);
+        let tile = tile.transformed().socket(facing);
 
-        this.socket(side) == tile.socket(facing)
+        this == tile
     }
 }
 
