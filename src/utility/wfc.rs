@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use rand::{distributions::WeightedIndex, thread_rng, Rng};
+use serde::{Deserialize, Serialize};
 
 use super::grid::Grid;
 
@@ -431,6 +432,19 @@ impl Generator {
 
         Ok(loops)
     }
+    /// Steps the generator once
+    pub fn step(&mut self) -> Result<bool, Error> {
+        let (x, y) = self.next_position()?;
+
+        self.collapse(x, y)?;
+        self.propogate(x, y)?;
+
+        if self.is_any_empty() {
+            Err(Error::EmptySet)
+        } else {
+            Ok(self.is_collapsed())
+        }
+    }
     /// Runs the generator
     pub fn run(&mut self) -> Result<Grid<Tile>, Error> {
         println!(
@@ -625,4 +639,19 @@ impl TileGenerator {
         self.append(&tiles);
         self.tiles_mut().dedup();
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TileSource {
+    pub source: String,
+    pub weight: usize,
+    pub nodes: Vec<Vec<usize>>,
+    pub layers: Vec<(usize, usize, usize)>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TileData {
+    pub id: usize,
+    pub version: usize,
+    pub tiles: Vec<TileSource>,
 }

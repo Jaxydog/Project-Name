@@ -5,7 +5,7 @@
 
 use utility::{
     grid::Grid,
-    wfc::{Generator, TileGenerator},
+    wfc::{Generator, TileData, TileGenerator},
 };
 
 use crate::utility::wfc::Rotation;
@@ -13,18 +13,29 @@ use crate::utility::wfc::Rotation;
 mod utility;
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
+    // std::env::set_var("RUST_BACKTRACE", "1");
     let mut gen = TileGenerator::new();
 
-    for texture in textures() {
-        let grid = Grid::from(texture);
-        gen.generate(&grid, [(0, 0, 0); 4], 1);
+    let raw_data = std::fs::read_to_string("data/tiles/test.ron").unwrap();
+    let data: TileData = ron::from_str(raw_data.as_str()).unwrap();
+    let mut textures = Vec::new();
+
+    for tile in data.tiles {
+        let layers = [
+            tile.layers[0],
+            tile.layers[1],
+            tile.layers[2],
+            tile.layers[3],
+        ];
+
+        textures.push(tile.nodes.clone());
+        gen.generate(&Grid::from(tile.nodes), layers, tile.weight);
     }
 
     let mut wfc = Generator::new(gen.tiles().clone(), 10, 10);
 
     if let Ok(grid) = wfc.run() {
-        let tiles = textures()
+        let tiles = textures
             .into_iter()
             .map(|v| {
                 v.into_iter()
@@ -79,98 +90,10 @@ fn main() {
 
 fn color(n: usize) -> &'static str {
     match n {
-        0 => "⬜",
-        1 => "⬛",
-        2 => "🟥",
+        0 => "🟥",
+        1 => "🟫",
+        2 => "🟧",
+        3 => "🟨",
         _ => "❓",
     }
-}
-
-fn textures() -> Vec<Vec<Vec<usize>>> {
-    vec![
-        vec![
-            vec![1, 1, 0, 1, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![1, 0, 2, 0, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![1, 1, 1, 1, 1],
-        ],
-        vec![
-            vec![1, 1, 0, 1, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![1, 0, 2, 0, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![1, 1, 0, 1, 1],
-        ],
-        vec![
-            vec![1, 1, 0, 1, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![0, 0, 2, 0, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![1, 1, 0, 1, 1],
-        ],
-        vec![
-            vec![1, 1, 0, 1, 1],
-            vec![1, 0, 0, 0, 1],
-            vec![0, 0, 2, 0, 0],
-            vec![1, 0, 0, 0, 1],
-            vec![1, 1, 0, 1, 1],
-        ],
-        vec![
-            vec![1, 1, 1, 1, 1],
-            vec![1, 1, 1, 1, 1],
-            vec![1, 1, 1, 1, 1],
-            vec![1, 1, 1, 1, 1],
-            vec![1, 1, 1, 1, 1],
-        ],
-        vec![
-            vec![0, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-        ],
-        vec![
-            vec![1, 1, 1, 1, 1],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-        ],
-        vec![
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-        ],
-        vec![
-            vec![1, 1, 0, 1, 1],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-        ],
-        vec![
-            vec![1, 1, 1, 1, 1],
-            vec![1, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-        ],
-        vec![
-            vec![1, 1, 0, 1, 1],
-            vec![1, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-        ],
-        vec![
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![0, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-            vec![1, 0, 0, 0, 0],
-        ],
-    ]
 }
