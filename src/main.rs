@@ -13,28 +13,19 @@ use crate::utility::wfc::Rotation;
 mod utility;
 
 fn main() {
-    // std::env::set_var("RUST_BACKTRACE", "1");
-    let mut gen = TileGenerator::new();
-
     let raw_data = std::fs::read_to_string("data/tiles/test.ron").unwrap();
     let data: TileData = ron::from_str(raw_data.as_str()).unwrap();
     let mut textures = Vec::new();
+    let mut gen = TileGenerator::<5>::new();
 
     for tile in data.tiles {
-        let layers = [
-            tile.layers[0],
-            tile.layers[1],
-            tile.layers[2],
-            tile.layers[3],
-        ];
-
         textures.push(tile.nodes.clone());
-        gen.generate(&Grid::from(tile.nodes), layers, tile.weight);
+        gen.generate(&Grid::from(tile.nodes), tile.layer, tile.weight);
     }
 
-    let mut wfc = Generator::new(gen.tiles().clone(), 10, 10);
+    let mut wfc = Generator::new(20, 10, gen.tiles().clone());
 
-    if let Ok(grid) = wfc.run() {
+    if let Ok(grid) = wfc.run(true) {
         let tiles = textures
             .into_iter()
             .map(|v| {
@@ -51,10 +42,10 @@ fn main() {
                 let mut grid = grid.clone();
 
                 match tile.rotation() {
-                    Rotation::None => (),
-                    Rotation::Once => grid.rotate_right(),
-                    Rotation::Twice => grid.rotate_twice(),
-                    Rotation::Thrice => grid.rotate_left(),
+                    Rotation::D0 => (),
+                    Rotation::D90 => grid.rotate_right(),
+                    Rotation::D180 => grid.rotate_twice(),
+                    Rotation::D270 => grid.rotate_left(),
                 }
                 if tile.x_flipped() {
                     grid.flip_x();
