@@ -1,2 +1,1 @@
-pub mod grid;
-pub mod wfc;
+pub mod generation;
