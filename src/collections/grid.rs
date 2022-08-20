@@ -198,7 +198,7 @@ impl<T> Grid<T> {
     }
     /// Returns a grid of the same size as `Self`, with function `f` applied to each `Some(...)` value in order
     pub fn map_some<U, F: Fn(&T) -> U>(self, f: F) -> Grid<U> {
-        self.map(|o| if let Some(v) = o { Some(f(&v)) } else { None })
+        self.map(|o| o.map(|v| f(&v)))
     }
     /// Returns a grid of the same size as `Self`, with function `f` applied to each `None` value in order
     pub fn map_none<U, F: Fn() -> Option<T>>(self, f: F) -> Self {
