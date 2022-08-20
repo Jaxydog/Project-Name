@@ -84,7 +84,10 @@ impl BitFieldResolvable<u64> for BitField {
         if flag >= MAX_NORMAL_FLAGS {
             Err(FlagTooLarge(MAX_NORMAL_FLAGS, flag))
         } else {
-            self.0 ^= 1 << flag;
+            if self.contains(flag)? {
+                self.0 ^= 1 << flag;
+            }
+
             Ok(())
         }
     }
@@ -121,7 +124,10 @@ impl BitFieldResolvable<u128> for LargeBitField {
         if flag >= MAX_LARGE_FLAGS {
             Err(FlagTooLarge(MAX_LARGE_FLAGS, flag))
         } else {
-            self.0 ^= 1 << flag;
+            if self.contains(flag)? {
+                self.0 ^= 1 << flag;
+            }
+
             Ok(())
         }
     }

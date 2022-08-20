@@ -4,7 +4,7 @@ use std::ops::{
     Sub, SubAssign,
 };
 
-/// Represents a number that can be set to any value within a given range
+/// Represents a value that can be set to any value within a given range
 #[derive(Clone, Debug, Default, Hash, PartialEq, Eq)]
 pub struct RangedValue<N, R: RangeBounds<N>>(N, R);
 
