@@ -198,25 +198,11 @@ impl<T> Grid<T> {
     }
     /// Returns a grid of the same size as `Self`, with function `f` applied to each `Some(...)` value in order
     pub fn map_some<U, F: Fn(&T) -> U>(self, f: F) -> Grid<U> {
-        Grid(
-            self.0
-                .into_iter()
-                .map(|r| r.into_iter().map(|o| o.as_ref().map(&f)).collect())
-                .collect(),
-        )
+        self.map(|o| if let Some(v) = o { Some(f(&v)) } else { None })
     }
     /// Returns a grid of the same size as `Self`, with function `f` applied to each `None` value in order
     pub fn map_none<U, F: Fn() -> Option<T>>(self, f: F) -> Self {
-        Self(
-            self.0
-                .into_iter()
-                .map(|r| {
-                    r.into_iter()
-                        .map(|o| if o.is_none() { f() } else { o })
-                        .collect()
-                })
-                .collect(),
-        )
+        self.map(|o| if o.is_none() { f() } else { o })
     }
     /// Returns a grid of the same size as `Self`, replacing all values with the provided value through cloning
     pub fn fill<U: Clone>(self, value: U) -> Grid<U> {

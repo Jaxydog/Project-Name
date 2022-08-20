@@ -185,6 +185,6 @@ impl<const P: usize> Generator<P> {
             println!("Generation completed.");
         }
 
-        Ok(self.grid().clone().map(|s| s[0].transformed()))
+        Ok(self.grid().clone().map_some(|s| s[0].transformed()))
     }
 }
