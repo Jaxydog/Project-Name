@@ -157,16 +157,24 @@ impl<T, const W: usize, const H: usize> SizedGrid<T, W, H> {
         }
     }
     /// Returns a grid of the same size as `Self`, with function `f` applied to each value in order
-    pub fn map<U, F: Fn(&T) -> U>(self, f: F) -> SizedGrid<U, W, H> {
+    pub fn map<U, F: Fn(Option<T>) -> Option<U>>(self, f: F) -> SizedGrid<U, W, H> {
+        SizedGrid(self.0.map(|r| r.map(&f)))
+    }
+    /// Returns a grid of the same size as `Self`, with function `f` applied to each `Some(...)` value in order
+    pub fn map_some<U, F: Fn(&T) -> U>(self, f: F) -> SizedGrid<U, W, H> {
         SizedGrid(self.0.map(|r| r.map(|o| o.as_ref().map(&f))))
+    }
+    /// Returns a grid of the same size as `Self`, with function `f` applied to each `None` value in order
+    pub fn map_none<U, F: Fn() -> Option<T>>(self, f: F) -> Self {
+        Self(self.0.map(|r| r.map(|o| if o.is_none() { f() } else { o })))
     }
     /// Returns a grid of the same size as `Self`, replacing all values with the provided value through cloning
     pub fn fill<U: Clone>(self, value: U) -> SizedGrid<U, W, H> {
-        SizedGrid(self.0.map(|r| r.map(|_| Some(value.clone()))))
+        self.map(|_| Some(value.clone()))
     }
     /// Returns a grid of the same size as `Self`, replacing each `Some(...)` value with the provided value through cloning
     pub fn replace<U: Clone>(self, value: U) -> SizedGrid<U, W, H> {
-        self.map(|_| value.clone())
+        self.map_some(|_| value.clone())
     }
 
     /// Reverses each row of the grid
