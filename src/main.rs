@@ -11,7 +11,6 @@ use utility::generation::{
 };
 
 mod collections;
-mod scripting;
 mod utility;
 
 fn main() {
