@@ -20,7 +20,7 @@ fn main() {
     let mut set = TileSet::<3>::new(raw.id);
     set.add_all_raws(&raw.tiles);
 
-    let mut gen = Generator::new(10, 10, set.tiles());
+    let mut gen = Generator::new(3, 3, set.tiles());
     let map = gen.run(false).unwrap();
 
     println!("{:?}", map);

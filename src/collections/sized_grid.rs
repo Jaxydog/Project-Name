@@ -4,46 +4,38 @@ use std::{
     vec::IntoIter,
 };
 
-/// Represents a grid index
-pub type Idx = (usize, usize);
+use super::grid::Idx;
 
 /// An iterator over the values of the grid
-pub struct Iter<'i, T> {
+pub struct Iter<'i, T, const W: usize, const H: usize> {
     index: (usize, usize),
-    slice: &'i [Vec<Option<T>>],
+    slice: &'i [[Option<T>; W]; H],
 }
 
-impl<'i, T> Iter<'i, T> {
+impl<'i, T, const W: usize, const H: usize> Iter<'i, T, W, H> {
     /// Creates a new iterator
-    pub const fn new(slice: &'i [Vec<Option<T>>]) -> Self {
+    pub const fn new(slice: &'i [[Option<T>; W]; H]) -> Self {
         Self {
             index: (0, 0),
             slice,
         }
     }
-
-    /// Returns the height of the iterator
-    const fn height(&self) -> usize {
-        self.slice.len()
-    }
-    /// Returns the width of the iterator
-    fn width(&self) -> usize {
-        if self.height() >= 1 {
-            self.slice[0].len()
-        } else {
-            0
-        }
-    }
 }
 
-impl<'i, T> Iterator for Iter<'i, T> {
+impl<'i, T, const W: usize, const H: usize> ExactSizeIterator for Iter<'i, T, W, H> {}
+
+impl<'i, T, const W: usize, const H: usize> Iterator for Iter<'i, T, W, H> {
     type Item = &'i Option<T>;
 
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let capacity = W * H;
+        (capacity, Some(capacity))
+    }
     fn next(&mut self) -> Option<Self::Item> {
         let (x, y) = self.index;
 
-        if x < self.width() && y < self.height() {
-            if x < self.width() {
+        if x < W && y < H {
+            if x < W {
                 self.index.0 += 1;
             } else {
                 self.index.1 += 1;
@@ -58,54 +50,48 @@ impl<'i, T> Iterator for Iter<'i, T> {
 }
 
 /// A mutable iterator over the values of the grid
-pub struct IterMut<'i, T> {
+pub struct IterMut<'i, T, const W: usize, const H: usize> {
     index: (usize, usize),
-    slice: &'i mut [Vec<Option<T>>],
+    slice: &'i mut [[Option<T>; W]; H],
 }
 
-impl<'i, T> IterMut<'i, T> {
+impl<'i, T, const W: usize, const H: usize> IterMut<'i, T, W, H> {
     /// Creates a new mutable iterator
-    pub fn new(slice: &'i mut [Vec<Option<T>>]) -> Self {
+    pub fn new(slice: &'i mut [[Option<T>; W]; H]) -> Self {
         Self {
             index: (0, 0),
             slice,
         }
     }
-
-    /// Returns the height of the iterator
-    const fn height(&self) -> usize {
-        self.slice.len()
-    }
-    /// Returns the width of the iterator
-    fn width(&self) -> usize {
-        if self.height() >= 1 {
-            self.slice[0].len()
-        } else {
-            0
-        }
-    }
 }
 
-impl<'i, T> Iterator for IterMut<'i, T> {
+impl<'i, T, const W: usize, const H: usize> ExactSizeIterator for IterMut<'i, T, W, H> {}
+
+impl<'i, T, const W: usize, const H: usize> Iterator for IterMut<'i, T, W, H> {
     type Item = &'i mut Option<T>;
 
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let capacity = W * H;
+        (capacity, Some(capacity))
+    }
     fn next(&mut self) -> Option<Self::Item> {
         let (x, y) = self.index;
 
-        if x < self.width() && y < self.height() {
-            if x < self.width() {
+        if x < W && y < H {
+            if x < W {
                 self.index.0 += 1;
             } else {
                 self.index.1 += 1;
                 self.index.0 = 0;
             }
 
-            if y < self.height() {
+            if y < self.slice.len() {
+                let ptr = self.slice.as_mut_ptr();
+
                 unsafe {
-                    let ptr = self.slice.as_mut_ptr();
                     let row = ptr.add(y);
 
-                    if x < row.as_ref().map_or(0, Vec::len) {
+                    if x < row.as_ref().map_or(0, |v| v.len()) {
                         let ptr = row.as_mut()?.as_mut_ptr();
                         return ptr.add(x).as_mut();
                     }
@@ -117,34 +103,17 @@ impl<'i, T> Iterator for IterMut<'i, T> {
     }
 }
 
-/// A grid that is allocated on the heap but does not have a fixed size
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Grid<T>(Vec<Vec<Option<T>>>);
+/// A grid with a fixed width and height, generally faster than a regular `Grid`
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct SizedGrid<T, const W: usize, const H: usize>([[Option<T>; W]; H]);
 
-impl<T> Grid<T> {
-    /// Creates a new empty grid
-    pub fn new(width: usize, height: usize) -> Self {
-        let mut vector = Vec::with_capacity(height);
-
-        for _ in 0..height {
-            let mut row = Vec::with_capacity(width);
-
-            for _ in 0..width {
-                row.push(None);
-            }
-
-            vector.push(row);
-        }
-
-        Self(vector)
-    }
-
+impl<T, const W: usize, const H: usize> SizedGrid<T, W, H> {
     /// Returns the grid's height
-    pub fn height(&self) -> usize {
+    pub const fn height(&self) -> usize {
         self.0.len()
     }
     /// Returns the grid's width
-    pub fn width(&self) -> usize {
+    pub const fn width(&self) -> usize {
         if self.height() >= 1 {
             self.0[0].len()
         } else {
@@ -152,19 +121,19 @@ impl<T> Grid<T> {
         }
     }
     /// Returns the grid's capacity
-    pub fn capacity(&self) -> usize {
+    pub const fn capacity(&self) -> usize {
         self.width() * self.height()
     }
 
     /// Returns `true` if the grid contains the provided index
-    pub fn includes(&self, index: Idx) -> bool {
+    pub const fn includes(&self, index: Idx) -> bool {
         index.0 < self.width() && index.1 < self.height()
     }
 
     /// Returns a reference to the value at the given index, if present
-    pub fn get(&self, index: Idx) -> Option<&T> {
+    pub const fn get(&self, index: Idx) -> Option<&T> {
         if self.includes(index) {
-            self[index].as_ref()
+            self.0[index.1][index.0].as_ref()
         } else {
             None
         }
@@ -188,25 +157,15 @@ impl<T> Grid<T> {
         }
     }
     /// Returns a grid of the same size as `Self`, with function `f` applied to each value in order
-    pub fn map<U, F: Fn(&T) -> U>(self, f: F) -> Grid<U> {
-        Grid(
-            self.0
-                .into_iter()
-                .map(|r| r.into_iter().map(|o| o.as_ref().map(&f)).collect())
-                .collect(),
-        )
+    pub fn map<U, F: Fn(&T) -> U>(self, f: F) -> SizedGrid<U, W, H> {
+        SizedGrid(self.0.map(|r| r.map(|o| o.as_ref().map(&f))))
     }
     /// Returns a grid of the same size as `Self`, replacing all values with the provided value through cloning
-    pub fn fill<U: Clone>(self, value: U) -> Grid<U> {
-        Grid(
-            self.0
-                .into_iter()
-                .map(|r| r.into_iter().map(|_| Some(value.clone())).collect())
-                .collect(),
-        )
+    pub fn fill<U: Clone>(self, value: U) -> SizedGrid<U, W, H> {
+        SizedGrid(self.0.map(|r| r.map(|_| Some(value.clone()))))
     }
     /// Returns a grid of the same size as `Self`, replacing each `Some(...)` value with the provided value through cloning
-    pub fn replace<U: Clone>(self, value: U) -> Grid<U> {
+    pub fn replace<U: Clone>(self, value: U) -> SizedGrid<U, W, H> {
         self.map(|_| value.clone())
     }
 
@@ -241,19 +200,19 @@ impl<T> Grid<T> {
     }
 
     /// Returns an iterator over the grid
-    pub fn iter(&self) -> Iter<T> {
+    pub const fn iter(&self) -> Iter<T, W, H> {
         Iter::new(&self.0)
     }
     /// Returns a mutable iterator over the grid
-    pub fn iter_mut(&mut self) -> IterMut<T> {
+    pub fn iter_mut(&mut self) -> IterMut<T, W, H> {
         IterMut::new(&mut self.0)
     }
     /// Returns an iterator over the grid's rows
-    pub fn rows(&self) -> slice::Iter<Vec<Option<T>>> {
+    pub fn rows(&self) -> slice::Iter<[Option<T>; W]> {
         self.0.iter()
     }
     /// Returns a mutable iterator over the grid's rows
-    pub fn rows_mut(&mut self) -> slice::IterMut<Vec<Option<T>>> {
+    pub fn rows_mut(&mut self) -> slice::IterMut<[Option<T>; W]> {
         self.0.iter_mut()
     }
     /// Returns an iterator over the grid that also contains each value's position
@@ -282,15 +241,19 @@ impl<T> Grid<T> {
     }
 }
 
-impl<T: Clone> Grid<T> {
+impl<T: Copy, const W: usize, const H: usize> SizedGrid<T, W, H> {
+    /// Creates a new empty grid
+    pub const fn new() -> Self {
+        Self([[None; W]; H])
+    }
     /// Creates a new grid filled with the provided value
-    pub fn new_with(width: usize, height: usize, value: T) -> Self {
-        Self::new(width, height).fill(value)
+    pub const fn new_with(value: T) -> Self {
+        Self([[Some(value); W]; H])
     }
 
     /// Transposes the grid, swapping rows and columns
-    pub fn transpose(self) -> Self {
-        let mut grid = Self::new(self.height(), self.width());
+    pub fn transpose(self) -> SizedGrid<T, H, W> {
+        let mut grid = SizedGrid::new();
 
         for (y, row) in self.0.into_iter().enumerate() {
             for (x, option) in row.into_iter().enumerate() {
@@ -301,18 +264,18 @@ impl<T: Clone> Grid<T> {
         grid
     }
     /// Rotates the grid to the left
-    pub fn rotate_left(mut self) -> Self {
+    pub fn rotate_left(mut self) -> SizedGrid<T, H, W> {
         self.flip_x();
         self.transpose()
     }
     /// Rotates the grid to the right
-    pub fn rotate_right(mut self) -> Self {
+    pub fn rotate_right(mut self) -> SizedGrid<T, H, W> {
         self.flip_y();
         self.transpose()
     }
 }
 
-impl<T: PartialEq> Grid<T> {
+impl<T: PartialEq, const W: usize, const H: usize> SizedGrid<T, W, H> {
     /// Returns `true` if the grid contains the provided value
     pub fn contains(&self, value: &T) -> bool {
         self.iter().any(|v| match v {
@@ -322,7 +285,7 @@ impl<T: PartialEq> Grid<T> {
     }
 }
 
-impl<T: Ord> Grid<T> {
+impl<T: Ord, const W: usize, const H: usize> SizedGrid<T, W, H> {
     /// Sorts the grid
     pub fn sort(&mut self) {
         self.rows_mut().for_each(|r| r.sort());
@@ -335,30 +298,19 @@ impl<T: Ord> Grid<T> {
     }
 }
 
-impl<T> From<Vec<Vec<Option<T>>>> for Grid<T> {
-    fn from(vector: Vec<Vec<Option<T>>>) -> Self {
-        Self(vector)
+impl<T, const W: usize, const H: usize> From<[[Option<T>; W]; H]> for SizedGrid<T, W, H> {
+    fn from(array: [[Option<T>; W]; H]) -> Self {
+        Self(array)
     }
 }
 
-impl<T> From<Vec<Vec<T>>> for Grid<T> {
-    fn from(vector: Vec<Vec<T>>) -> Self {
-        let width = vector.iter().map(Vec::len).min().unwrap_or_default();
-
-        vector
-            .into_iter()
-            .map(|r| {
-                r.into_iter()
-                    .take(width)
-                    .map(|v| Some(v))
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>()
-            .into()
+impl<T, const W: usize, const H: usize> From<[[T; W]; H]> for SizedGrid<T, W, H> {
+    fn from(array: [[T; W]; H]) -> Self {
+        Self(array.map(|r| r.map(|v| Some(v))))
     }
 }
 
-impl<T> Index<Idx> for Grid<T> {
+impl<T, const W: usize, const H: usize> Index<Idx> for SizedGrid<T, W, H> {
     type Output = Option<T>;
 
     fn index(&self, index: Idx) -> &Self::Output {
@@ -366,13 +318,13 @@ impl<T> Index<Idx> for Grid<T> {
     }
 }
 
-impl<T> IndexMut<Idx> for Grid<T> {
+impl<T, const W: usize, const H: usize> IndexMut<Idx> for SizedGrid<T, W, H> {
     fn index_mut(&mut self, index: Idx) -> &mut Self::Output {
         &mut self.0[index.1][index.0]
     }
 }
 
-impl<T> IntoIterator for Grid<T> {
+impl<T, const W: usize, const H: usize> IntoIterator for SizedGrid<T, W, H> {
     type Item = Option<T>;
     type IntoIter = IntoIter<Self::Item>;
 
@@ -386,5 +338,11 @@ impl<T> IntoIterator for Grid<T> {
         }
 
         vector.into_iter()
+    }
+}
+
+impl<T: Copy + Default, const W: usize, const H: usize> Default for SizedGrid<T, W, H> {
+    fn default() -> Self {
+        Self::new_with(T::default())
     }
 }

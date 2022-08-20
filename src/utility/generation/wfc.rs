@@ -39,7 +39,7 @@ impl<const P: usize> Generator<P> {
     pub fn entropy(&self) -> usize {
         self.grid()
             .iter()
-            .map(|(_, o)| o.as_ref().unwrap_or(&Vec::new()).len())
+            .map(|o| o.as_ref().unwrap_or(&Vec::new()).len())
             .reduce(|a, b| a + b)
             .unwrap_or_default()
     }
@@ -47,19 +47,19 @@ impl<const P: usize> Generator<P> {
     pub fn is_collapsed(&self) -> bool {
         self.grid()
             .iter()
-            .all(|(_, o)| o.as_ref().map_or(false, |v| v.len() == 1))
+            .all(|o| o.as_ref().map_or(false, |v| v.len() == 1))
     }
     /// Returns `true` if the grid is entirely out of possible states, which should never happen
     pub fn is_empty(&self) -> bool {
         self.grid()
             .iter()
-            .all(|(_, o)| o.as_ref().map_or(false, Vec::is_empty))
+            .all(|o| o.as_ref().map_or(false, Vec::is_empty))
     }
     /// Returns `true` if any space in the grid is out of possible states, which should never happen
     pub fn is_any_empty(&self) -> bool {
         self.grid()
             .iter()
-            .any(|(_, o)| o.as_ref().map_or(false, Vec::is_empty))
+            .any(|o| o.as_ref().map_or(false, Vec::is_empty))
     }
 
     /// Returns a list of possible grid indices that are directly adjacent to the provided coordinates
@@ -80,7 +80,7 @@ impl<const P: usize> Generator<P> {
     pub fn next_index(&self) -> Result<Idx, Error> {
         let tiles = self
             .grid()
-            .iter()
+            .enumerate()
             .filter(|(_, o)| o.as_ref().map_or(false, |v| v.len() > 1));
 
         let entropy = tiles
@@ -106,12 +106,7 @@ impl<const P: usize> Generator<P> {
     }
     /// Collapses the tile set at the provided coordinates into a random possible tile
     pub fn collapse(&mut self, position: Idx) -> Result<(), Error> {
-        let set = self
-            .grid_mut()
-            .get_mut(position)
-            .ok()
-            .flatten()
-            .ok_or(Error::MissingSet)?;
+        let set = self.grid_mut().get_mut(position).ok_or(Error::MissingSet)?;
 
         if set.is_empty() {
             Err(Error::EmptySet)
@@ -131,22 +126,11 @@ impl<const P: usize> Generator<P> {
         let mut loops = 0_usize;
 
         while let Some(index) = stack.pop() {
-            let set = self
-                .grid()
-                .get(index)
-                .ok()
-                .flatten()
-                .ok_or(Error::MissingSet)?
-                .clone();
+            let set = self.grid().get(index).ok_or(Error::MissingSet)?.clone();
 
             for adjacent in self.adjacent(index) {
                 let side = Side::relative(index, adjacent);
-                let other = self
-                    .grid_mut()
-                    .get_mut(adjacent)
-                    .ok()
-                    .flatten()
-                    .ok_or(Error::MissingSet)?;
+                let other = self.grid_mut().get_mut(adjacent).ok_or(Error::MissingSet)?;
 
                 for tile in other.clone() {
                     if !set
@@ -170,7 +154,12 @@ impl<const P: usize> Generator<P> {
 
     pub fn run(&mut self, silent: bool) -> Result<Grid<Tile<P>>, Error> {
         if !silent {
-            println!("Generating... {:?}", self.grid().bounds());
+            println!(
+                "Generating... {}x{} ({})",
+                self.grid().width(),
+                self.grid().height(),
+                self.grid().capacity()
+            );
         }
 
         let mut cycles = 0_usize;
