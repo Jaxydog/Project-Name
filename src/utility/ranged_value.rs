@@ -10,14 +10,37 @@ pub struct RangedValue<N, R: RangeBounds<N>>(N, R);
 
 impl<N, R: RangeBounds<N>> RangedValue<N, R> {
     /// Returns a reference to the ranged value's value
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 50);
+    ///
+    /// assert_eq!(50, number.value());
+    /// ```
     pub const fn value(&self) -> &N {
         &self.0
     }
     /// Returns a mutable reference to the ranged value's value
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 50);
+    ///
+    /// number.value_mut() += 20;
+    ///
+    /// assert_eq!(70, number.value());
+    /// ```
     pub fn value_mut(&mut self) -> &mut N {
         &mut self.0
     }
     /// Returns a reference to the ranged value's range start
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 50);
+    ///
+    /// assert_eq!(Some(0), number.start());
+    /// ```
     pub fn start(&self) -> Option<&N> {
         match self.1.start_bound() {
             Bound::Included(n) | Bound::Excluded(n) => Some(n),
@@ -25,6 +48,13 @@ impl<N, R: RangeBounds<N>> RangedValue<N, R> {
         }
     }
     /// Returns a reference to the ranged value's range end
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 50);
+    ///
+    /// assert_eq!(Some(100), number.end());
+    /// ```
     pub fn end(&self) -> Option<&N> {
         match self.1.end_bound() {
             Bound::Included(n) | Bound::Excluded(n) => Some(n),
@@ -35,14 +65,39 @@ impl<N, R: RangeBounds<N>> RangedValue<N, R> {
 
 impl<N: PartialOrd, R: RangeBounds<N>> RangedValue<N, R> {
     /// Returns `true` if the provided value is within the ranged value's range
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 0);
+    ///
+    /// assert!(number.contains(25));
+    /// assert!(number.contains(75));
+    /// assert!(!number.contains(101));
+    /// ```
     pub fn contains(&self, value: &N) -> bool {
         self.1.contains(value)
     }
     /// Returns `true` if the provided value is under the ranged value's range start
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 0);
+    ///
+    /// assert!(number.underflows(-1));
+    /// assert!(!number.underflows(101));
+    /// ```
     pub fn underflows(&self, value: &N) -> bool {
         self.start().map_or(false, |s| s > value)
     }
     /// Returns `true` if the provided value is over the ranged value's range end
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 0);
+    ///
+    /// assert!(number.overflows(101));
+    /// assert!(!number.overflows(-1));
+    /// ```
     pub fn overflows(&self, value: &N) -> bool {
         self.end().is_some() && !self.contains(value) && !self.underflows(value)
     }
@@ -50,21 +105,37 @@ impl<N: PartialOrd, R: RangeBounds<N>> RangedValue<N, R> {
 
 impl<N: Clone + PartialOrd, R: RangeBounds<N>> RangedValue<N, R> {
     /// Creates a new range number, defaulting to the lowest bound if the provided value is invalid
-    pub fn new(range: R, value: N, default: N) -> Self {
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 50);
+    ///
+    /// assert_eq!(50, number.value());
+    /// assert_eq!(Some(0), number.start());
+    /// assert_eq!(Some(100), number.end());
+    /// ```
+    pub fn new(range: R, value: N) -> Self {
         if range.contains(&value) {
             Self(value, range)
         } else {
-            let value = match range.start_bound() {
+            let default = match range.start_bound() {
                 Bound::Included(n) | Bound::Excluded(n) => Some(n),
                 Bound::Unbounded => None,
             }
             .map(ToOwned::to_owned);
 
-            Self(value.unwrap_or(default), range)
+            Self(default.unwrap_or(value), range)
         }
     }
 
     /// Performs an operation on the ranged value
+    ///
+    /// # Examples
+    /// ```rust
+    /// let number = RangedValue::new(0..=100, 50);
+    ///
+    /// assert_eq!(20, number.operate(|v| v - 30));
+    /// ```
     pub fn operate<F: FnOnce(N) -> N>(&self, f: F) -> N {
         let n = f(self.value().clone());
 
@@ -77,6 +148,15 @@ impl<N: Clone + PartialOrd, R: RangeBounds<N>> RangedValue<N, R> {
         }
     }
     /// Performs an operation on the ranged value and assigns the result
+    ///
+    /// # Examples
+    /// ```rust
+    /// let mut number = RangedValue::new(0..=100, 50);
+    ///
+    /// number.assign(|v| v - 12);
+    ///
+    /// assert_eq!(38, number.value());
+    /// ```
     pub fn assign<F: FnOnce(N) -> N>(&mut self, f: F) {
         self.0 = self.operate(f);
     }
