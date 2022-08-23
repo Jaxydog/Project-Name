@@ -1,2 +1,2 @@
-pub mod grid;
-pub mod sized_grid;
+pub mod array_grid;
+pub mod vec_grid;
