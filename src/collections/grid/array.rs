@@ -300,3 +300,17 @@ impl<'i, T, const W: usize, const H: usize> Iterator for IterMut<'i, T, W, H> {
         (W * H, Some(W * H))
     }
 }
+
+/// Shorthand macro for creating an `ArrayGrid`
+#[macro_export]
+macro_rules! arr_grid {
+    () => {
+        ArrayGrid::new()
+    };
+    ($w: expr, $h: expr) => {
+        ArrayGrid::<_, $w, $h>::new()
+    };
+    ($v: expr; $w: expr, $h: expr) => {
+        ArrayGrid::<_, $w, $h>::new_with($v)
+    };
+}

@@ -6,6 +6,7 @@ pub mod vec;
 /// Value that can be used to index into the grid
 pub type Idx = (usize, usize);
 
+/// Base trait for implementing custom grid types
 pub trait Grid<'i, T: 'i>: Index<Idx, Output = Option<T>> + IndexMut<Idx> {
     /// Return type of the `iter` method
     type Iter: Iterator<Item = &'i Option<T>>;

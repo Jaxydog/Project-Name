@@ -334,3 +334,14 @@ impl<'i, T> Iterator for IterMut<'i, T> {
         (width * height, Some(width * height))
     }
 }
+
+/// Shorthand macro for creating a `VecGrid`
+#[macro_export]
+macro_rules! vec_grid {
+    ($w: expr, $h: expr) => {
+        VecGrid::new($w, $h)
+    };
+    ($v: expr; $w: expr, $h: expr) => {
+        VecGrid::new_with($w, $h, $v)
+    };
+}
