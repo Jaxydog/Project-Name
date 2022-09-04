@@ -233,3 +233,38 @@ impl BitFieldResolvable<u128> for LargeBitField {
         }
     }
 }
+
+/// Bit field that may contain up to `S` flags
+#[allow(clippy::module_name_repetitions)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ArrayBitField<const S: usize>([bool; S]);
+
+impl<const S: usize> ArrayBitField<S> {
+    /// Creates a new array bit field
+    pub const fn new() -> Self {
+        Self([false; S])
+    }
+}
+
+impl<const S: usize> From<[bool; S]> for ArrayBitField<S> {
+    fn from(array: [bool; S]) -> Self {
+        Self(array)
+    }
+}
+
+impl<const S: usize> BitFieldResolvable<usize> for ArrayBitField<S> {
+    fn contains<T: Into<usize>>(&self, flag: T) -> Result<bool, FlagTooLarge<usize>> {
+        let index: usize = flag.into();
+        Ok(*self.0.get(index).ok_or(FlagTooLarge(index, S))?)
+    }
+    fn insert<T: Into<usize>>(&mut self, flag: T) -> Result<(), FlagTooLarge<usize>> {
+        let index: usize = flag.into();
+        self.0[index] = true;
+        Ok(())
+    }
+    fn remove<T: Into<usize>>(&mut self, flag: T) -> Result<(), FlagTooLarge<usize>> {
+        let index: usize = flag.into();
+        self.0[index] = false;
+        Ok(())
+    }
+}
